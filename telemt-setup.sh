@@ -288,7 +288,7 @@ TOML_EOF
 
     echo "$USERS_CONFIG" >> "$CONFIG_FILE"
 
-    chmod 640 "$CONFIG_FILE"
+    chmod 644 "$CONFIG_FILE"
     echo -e "${GREEN}✓ Конфигурация сохранена: ${CONFIG_FILE}${NC}"
 }
 
@@ -496,14 +496,13 @@ run_docker_install() {
         --name "$CONTAINER_NAME" \
         --restart unless-stopped \
         "${docker_ports[@]}" \
-        -v "${CONFIG_FILE}:/run/telemt/config.toml:ro" \
-        --tmpfs /run/telemt:rw,mode=1777,size=1m \
+        -v "${CONFIG_FILE}:/app/config.toml:ro" \
+        --tmpfs /app/tlsfront:rw,mode=1777,size=5m \
         --cap-drop ALL \
         --cap-add NET_BIND_SERVICE \
         --read-only \
         --security-opt no-new-privileges:true \
         --ulimit nofile=65536:65536 \
-        -w /run/telemt \
         "$TELEMT_IMAGE" config.toml
 
     if ! wait_for_container "$CONTAINER_NAME"; then
@@ -915,14 +914,13 @@ do_update() {
             --name "$name" \
             --restart unless-stopped \
             "${docker_ports[@]}" \
-            -v "${CONFIG_FILE}:/run/telemt/config.toml:ro" \
-            --tmpfs /run/telemt:rw,mode=1777,size=1m \
+            -v "${CONFIG_FILE}:/app/config.toml:ro" \
+            --tmpfs /app/tlsfront:rw,mode=1777,size=5m \
             --cap-drop ALL \
             --cap-add NET_BIND_SERVICE \
             --read-only \
             --security-opt no-new-privileges:true \
             --ulimit nofile=65536:65536 \
-            -w /run/telemt \
             "$TELEMT_IMAGE" config.toml
 
         if wait_for_container "$name"; then
