@@ -136,30 +136,33 @@ prompt_choice() {
 
 save_state() {
     mkdir -p "$CONFIG_DIR"
-    cat > "$SETUP_STATE_FILE" <<EOF
-INSTALL_METHOD="${INSTALL_METHOD}"
-CONTAINER_NAME="${CONTAINER_NAME}"
-SERVER_IP="${SERVER_IP}"
-SERVER_PORT="${SERVER_PORT}"
-TLS_DOMAIN="${TLS_DOMAIN}"
-MASK_ENABLED="${MASK_ENABLED}"
-TLS_EMULATION="${TLS_EMULATION}"
-LOG_LEVEL="${LOG_LEVEL}"
-MODE_CLASSIC="${MODE_CLASSIC}"
-MODE_SECURE="${MODE_SECURE}"
-MODE_TLS="${MODE_TLS}"
-METRICS_ENABLED="${METRICS_ENABLED}"
-METRICS_PORT="${METRICS_PORT}"
-API_ENABLED="${API_ENABLED}"
-API_PORT="${API_PORT}"
-API_LISTEN="${API_LISTEN}"
-MIDDLE_PROXY="${MIDDLE_PROXY}"
-USERS_CONFIG="${USERS_CONFIG}"
-PUBLIC_HOST="${PUBLIC_HOST}"
-PUBLIC_PORT="${PUBLIC_PORT}"
-USE_IPV6="${USE_IPV6}"
-FAST_MODE="${FAST_MODE}"
-EOF
+    cat > "$SETUP_STATE_FILE" <<'STATE_HEADER'
+# telemt-setup state file — do not edit manually
+STATE_HEADER
+    {
+        echo "INSTALL_METHOD=\"${INSTALL_METHOD}\""
+        echo "CONTAINER_NAME=\"${CONTAINER_NAME}\""
+        echo "SERVER_IP=\"${SERVER_IP}\""
+        echo "SERVER_PORT=\"${SERVER_PORT}\""
+        echo "TLS_DOMAIN=\"${TLS_DOMAIN}\""
+        echo "MASK_ENABLED=\"${MASK_ENABLED}\""
+        echo "TLS_EMULATION=\"${TLS_EMULATION}\""
+        echo "LOG_LEVEL=\"${LOG_LEVEL}\""
+        echo "MODE_CLASSIC=\"${MODE_CLASSIC}\""
+        echo "MODE_SECURE=\"${MODE_SECURE}\""
+        echo "MODE_TLS=\"${MODE_TLS}\""
+        echo "METRICS_ENABLED=\"${METRICS_ENABLED}\""
+        echo "METRICS_PORT=\"${METRICS_PORT}\""
+        echo "API_ENABLED=\"${API_ENABLED}\""
+        echo "API_PORT=\"${API_PORT}\""
+        echo "API_LISTEN=\"${API_LISTEN}\""
+        echo "MIDDLE_PROXY=\"${MIDDLE_PROXY}\""
+        echo "PUBLIC_HOST=\"${PUBLIC_HOST}\""
+        echo "PUBLIC_PORT=\"${PUBLIC_PORT}\""
+        echo "USE_IPV6=\"${USE_IPV6}\""
+        echo "FAST_MODE=\"${FAST_MODE}\""
+        printf 'USERS_CONFIG=%q\n' "$USERS_CONFIG"
+    } >> "$SETUP_STATE_FILE"
     chmod 600 "$SETUP_STATE_FILE"
 }
 
@@ -286,7 +289,13 @@ tls_front_dir = "tlsfront"
 [access.users]
 TOML_EOF
 
-    echo "$USERS_CONFIG" >> "$CONFIG_FILE"
+    while IFS='=' read -r uname usecret; do
+        uname=$(echo "$uname" | xargs)
+        usecret=$(echo "$usecret" | xargs | tr -d '"')
+        if [[ -n "$uname" && -n "$usecret" ]]; then
+            echo "${uname} = \"${usecret}\"" >> "$CONFIG_FILE"
+        fi
+    done <<< "$USERS_CONFIG"
 
     chmod 644 "$CONFIG_FILE"
     echo -e "${GREEN}✓ Конфигурация сохранена: ${CONFIG_FILE}${NC}"
