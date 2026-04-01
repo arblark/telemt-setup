@@ -42,13 +42,13 @@
 ### Установка одной командой
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/arblark/telemt-proxy-installer/main/telemt-setup.sh -o telemt-setup.sh && chmod +x telemt-setup.sh && sudo ./telemt-setup.sh
+curl -sSL https://raw.githubusercontent.com/arblark/telemt-setup/main/telemt-setup.sh -o telemt-setup.sh && chmod +x telemt-setup.sh && sudo ./telemt-setup.sh
 ```
 
 Или через `wget`:
 
 ```bash
-wget -qO telemt-setup.sh https://raw.githubusercontent.com/arblark/telemt-proxy-installer/main/telemt-setup.sh && chmod +x telemt-setup.sh && sudo ./telemt-setup.sh
+wget -qO telemt-setup.sh https://raw.githubusercontent.com/arblark/telemt-setup/main/telemt-setup.sh && chmod +x telemt-setup.sh && sudo ./telemt-setup.sh
 ```
 
 ### Пошагово
@@ -58,7 +58,7 @@ wget -qO telemt-setup.sh https://raw.githubusercontent.com/arblark/telemt-proxy-
 3. Скачайте и запустите:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/arblark/telemt-proxy-installer/main/telemt-setup.sh -o telemt-setup.sh
+curl -sSL https://raw.githubusercontent.com/arblark/telemt-setup/main/telemt-setup.sh -o telemt-setup.sh
 chmod +x telemt-setup.sh
 sudo ./telemt-setup.sh
 ```
