@@ -138,22 +138,8 @@ apply_preset() {
     local preset="$1"
     case "$preset" in
         recommended)
-            # Secure (dd) + Middle Proxy + TLS-эмуляция + маскировка
-            MODE_CLASSIC="false"
-            MODE_SECURE="true"
-            MODE_TLS="false"
-            MIDDLE_PROXY="true"
-            MASK_ENABLED="true"
-            TLS_EMULATION="true"
-            MASK_HOST=""
-            TLS_DOMAIN="${TLS_DOMAIN:-apple.com}"
-            LOG_LEVEL="normal"
-            API_ENABLED="true"
-            METRICS_ENABLED="false"
-            USE_IPV6="false"
-            ;;
-        stealth)
-            # TLS (ee) + Middle Proxy + полная маскировка + эмуляция
+            # TLS (ee) + Middle Proxy + маскировка + TLS-эмуляция
+            # Эталонная конфигурация telemt — максимальная защита от DPI
             MODE_CLASSIC="false"
             MODE_SECURE="false"
             MODE_TLS="true"
@@ -167,15 +153,31 @@ apply_preset() {
             METRICS_ENABLED="false"
             USE_IPV6="false"
             ;;
+        secure)
+            # Secure (dd) + Middle Proxy + маскировка, без TLS-эмуляции
+            MODE_CLASSIC="false"
+            MODE_SECURE="true"
+            MODE_TLS="false"
+            MIDDLE_PROXY="true"
+            MASK_ENABLED="true"
+            TLS_EMULATION="false"
+            MASK_HOST=""
+            TLS_DOMAIN="${TLS_DOMAIN:-apple.com}"
+            LOG_LEVEL="normal"
+            API_ENABLED="true"
+            METRICS_ENABLED="false"
+            USE_IPV6="false"
+            ;;
         simple)
-            # Classic + без Middle Proxy + маскировка через mask_host
+            # Classic + без Middle Proxy + маскировка
+            # Проверенная рабочая конфигурация без обфускации
             MODE_CLASSIC="true"
             MODE_SECURE="false"
             MODE_TLS="false"
             MIDDLE_PROXY="false"
             MASK_ENABLED="true"
             TLS_EMULATION="false"
-            MASK_HOST="${MASK_HOST:-www.cloudflare.com}"
+            MASK_HOST=""
             TLS_DOMAIN="${TLS_DOMAIN:-www.cloudflare.com}"
             LOG_LEVEL="normal"
             API_ENABLED="true"
@@ -197,15 +199,15 @@ show_preset_menu() {
     echo -e "${CYAN}──────────────────────────────────────────────────────────${NC}"
     echo ""
     echo -e "  ${GREEN}1)${NC} ${BOLD}Рекомендуемый${NC} ${DIM}(по умолч.)${NC}"
-    echo -e "     Secure (dd) + Middle Proxy + TLS-маскировка"
-    echo -e "     ${DIM}Хороший баланс скорости и обхода блокировок${NC}"
+    echo -e "     TLS (ee) + Middle Proxy + TLS-эмуляция + маскировка"
+    echo -e "     ${DIM}Трафик неотличим от HTTPS — эталонная конфигурация telemt${NC}"
     echo ""
-    echo -e "  ${GREEN}2)${NC} ${BOLD}Максимальная маскировка${NC}"
-    echo -e "     TLS (ee) + Middle Proxy + полная TLS-эмуляция"
-    echo -e "     ${DIM}Трафик неотличим от HTTPS — для сильной цензуры${NC}"
+    echo -e "  ${GREEN}2)${NC} ${BOLD}Secure${NC}"
+    echo -e "     Secure (dd) + Middle Proxy + маскировка"
+    echo -e "     ${DIM}Обфускация без TLS-обёртки — быстрее, но проще для DPI${NC}"
     echo ""
     echo -e "  ${GREEN}3)${NC} ${BOLD}Простой${NC}"
-    echo -e "     Classic + прямое подключение + маскировка через mask_host"
+    echo -e "     Classic + прямое подключение + маскировка"
     echo -e "     ${DIM}Без Middle Proxy, без обфускации — проверенная рабочая конфигурация${NC}"
     echo ""
     echo -e "  ${GREEN}4)${NC} ${BOLD}Ручная настройка${NC}"
@@ -217,7 +219,7 @@ show_preset_menu() {
 
     case "$preset_choice" in
         1|recommended)    apply_preset "recommended" ;;
-        2|stealth)        apply_preset "stealth" ;;
+        2|secure)         apply_preset "secure" ;;
         3|simple)         apply_preset "simple" ;;
         4|custom)         apply_preset "custom" ;;
         *)                apply_preset "recommended" ;;
@@ -1315,8 +1317,8 @@ case "${1:-}" in
         echo "  TM_TLS_EMULATION   TLS-эмуляция: true | false (по умолч.: true)"
         echo "  TM_LOG_LEVEL        Уровень логов: debug|verbose|normal|silent"
         echo "  TM_MODE_CLASSIC     Режим classic: true | false (по умолч.: false)"
-        echo "  TM_MODE_SECURE      Режим secure: true | false (по умолч.: true)"
-        echo "  TM_MODE_TLS         Режим tls: true | false (по умолч.: false)"
+        echo "  TM_MODE_SECURE      Режим secure: true | false (по умолч.: false)"
+        echo "  TM_MODE_TLS         Режим tls: true | false (по умолч.: true)"
         echo "  TM_METRICS          Включить метрики: true | false (по умолч.: false)"
         echo "  TM_METRICS_PORT     Порт метрик (по умолч.: 9090)"
         echo "  TM_API              Включить API: true | false (по умолч.: true)"
@@ -1373,13 +1375,8 @@ fi
 prompt_value SERVER_IP     "IP сервера"                    "${TM_IP:-$SERVER_IP}"
 prompt_value SERVER_PORT   "Порт прокси"                   "${TM_PORT:-${SERVER_PORT:-443}}"
 
-if [[ "$SELECTED_PRESET" == "3" || "$SELECTED_PRESET" == "simple" ]]; then
-    prompt_value MASK_HOST     "Домен маскировки (mask_host)"  "${TM_MASK_HOST:-${MASK_HOST:-www.cloudflare.com}}"
-    TLS_DOMAIN="${MASK_HOST}"
-else
-    prompt_value TLS_DOMAIN    "TLS-домен маскировки"          "${TM_TLS_DOMAIN:-${TLS_DOMAIN:-apple.com}}"
-    MASK_HOST="${TM_MASK_HOST:-${MASK_HOST:-}}"
-fi
+prompt_value TLS_DOMAIN    "Домен маскировки (tls_domain)"  "${TM_TLS_DOMAIN:-${TLS_DOMAIN:-apple.com}}"
+MASK_HOST="${TM_MASK_HOST:-${MASK_HOST:-}}"
 
 # ─── Расширенные настройки (только для ручного режима) ────────
 
@@ -1395,8 +1392,8 @@ if [[ "$SELECTED_PRESET" == "4" || "$SELECTED_PRESET" == "custom" ]]; then
     echo -e "${BOLD}Режимы протокола:${NC}"
     echo -e "${CYAN}──────────────────────────────────────────────────────────${NC}"
     prompt_choice MODE_CLASSIC  "Режим classic (без обфускации):"  "${TM_MODE_CLASSIC:-${MODE_CLASSIC:-false}}" "true" "false"
-    prompt_choice MODE_SECURE   "Режим secure (dd-префикс):"      "${TM_MODE_SECURE:-${MODE_SECURE:-true}}"    "true" "false"
-    prompt_choice MODE_TLS      "Режим TLS (ee-префикс + SNI):"   "${TM_MODE_TLS:-${MODE_TLS:-false}}"         "true" "false"
+    prompt_choice MODE_SECURE   "Режим secure (dd-префикс):"      "${TM_MODE_SECURE:-${MODE_SECURE:-false}}"   "true" "false"
+    prompt_choice MODE_TLS      "Режим TLS (ee-префикс + SNI):"   "${TM_MODE_TLS:-${MODE_TLS:-true}}"          "true" "false"
 
     echo ""
     echo -e "${BOLD}Middle Proxy и сеть:${NC}"
@@ -1436,12 +1433,12 @@ if [[ "$SELECTED_PRESET" == "4" || "$SELECTED_PRESET" == "custom" ]]; then
         prompt_value CONTAINER_NAME  "Имя Docker-контейнера"  "${TM_CONTAINER:-${CONTAINER_NAME:-telemt}}"
     fi
 else
-    # Для пресетов 1/2/3 — дефолты, если не заданы пресетом
+    # Для пресетов 1/2/3 — значения уже установлены apply_preset
     MASK_ENABLED="${MASK_ENABLED:-true}"
     TLS_EMULATION="${TLS_EMULATION:-true}"
     MODE_CLASSIC="${MODE_CLASSIC:-false}"
-    MODE_SECURE="${MODE_SECURE:-true}"
-    MODE_TLS="${MODE_TLS:-false}"
+    MODE_SECURE="${MODE_SECURE:-false}"
+    MODE_TLS="${MODE_TLS:-true}"
     MIDDLE_PROXY="${MIDDLE_PROXY:-true}"
     USE_IPV6="${TM_IPV6:-${USE_IPV6:-false}}"
     LOG_LEVEL="${TM_LOG_LEVEL:-${LOG_LEVEL:-normal}}"
