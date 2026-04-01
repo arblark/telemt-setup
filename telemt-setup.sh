@@ -507,6 +507,7 @@ run_docker_install() {
         "${docker_ports[@]}" \
         -v "${CONFIG_FILE}:/app/config.toml:ro" \
         --tmpfs /app/tlsfront:rw,mode=1777,size=5m \
+        --tmpfs /app/cache:rw,mode=1777,size=5m \
         --cap-drop ALL \
         --cap-add NET_BIND_SERVICE \
         --read-only \
@@ -925,6 +926,7 @@ do_update() {
             "${docker_ports[@]}" \
             -v "${CONFIG_FILE}:/app/config.toml:ro" \
             --tmpfs /app/tlsfront:rw,mode=1777,size=5m \
+            --tmpfs /app/cache:rw,mode=1777,size=5m \
             --cap-drop ALL \
             --cap-add NET_BIND_SERVICE \
             --read-only \
