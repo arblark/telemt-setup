@@ -17,7 +17,7 @@
   - **Secure** — Secure (dd) + Middle Proxy + маскировка
   - **Простой** — Classic + прямое подключение (проверенная рабочая конфигурация)
   - **Ручная настройка** — полный контроль над каждым параметром
-- **Два метода установки** — Docker-контейнер или нативный бинарник с systemd
+- **Два метода установки** — Docker-контейнер или нативный бинарник с systemd/OpenRC
 - **Интерактивный режим** — пошаговая настройка всех параметров с дефолтами
 - **Авто-режим** — неинтерактивная установка через `--auto` с переменными окружения
 - **Полная конфигурация telemt** — все параметры `config.toml` настраиваются в скрипте:
@@ -29,8 +29,14 @@
   - Множество пользователей с уникальными секретами
   - IPv4/IPv6
   - Уровень логирования
+  - Глобальный ad_tag (@MTProxybot)
+  - PROXY protocol (HAProxy/nginx)
+- **x86_64-v3 (AVX2)** — автоопределение и загрузка оптимизированной сборки с fallback
+- **SHA256 верификация** — проверка контрольной суммы скачанного бинарника
+- **NET_ADMIN capability** — поддержка расширенных сетевых возможностей telemt
+- **OpenRC** — полная поддержка Alpine Linux и других OpenRC-систем
 - **Автоопределение IP** сервера
-- **Проверка порта** перед запуском
+- **Проверка порта** перед запуском (с детекцией текущего telemt)
 - **Валидация DNS** домена маскировки
 - **Проверка соединения** после старта
 - **QR-код** ссылки прямо в терминале
@@ -40,7 +46,7 @@
 - **Обновление и удаление** встроенными командами
 - **Редактирование** `config.toml` прямо из скрипта (`--edit`)
 - **Просмотр логов** в реальном времени (`--logs`)
-- **Multi-distro** — Debian, Ubuntu, CentOS, Fedora и другие
+- **Multi-distro** — Debian, Ubuntu, CentOS, Fedora, Alpine и другие
 
 ## Быстрый старт
 
@@ -82,6 +88,7 @@ sudo ./telemt-setup.sh --edit         # открыть config.toml в редак
 sudo ./telemt-setup.sh --logs         # логи в реальном времени
 sudo ./telemt-setup.sh --update       # обновить telemt и перезапустить
 sudo ./telemt-setup.sh --uninstall    # удалить всё
+sudo ./telemt-setup.sh --version      # версия скрипта
 sudo ./telemt-setup.sh --help         # справка
 ```
 
@@ -115,6 +122,7 @@ sudo ./telemt-setup.sh --help         # справка
 |---|---|---|---|
 | Маскировка | true | `TM_MASK` | Forward нераспознанного трафика на TLS-домен |
 | TLS-эмуляция | true | `TM_TLS_EMULATION` | Эмуляция реальных длин TLS-записей |
+| Mask-хост | (пусто) | `TM_MASK_HOST` | Отдельный хост для маскировки |
 
 ### Режимы протокола
 
@@ -130,6 +138,7 @@ sudo ./telemt-setup.sh --help         # справка
 |---|---|---|---|
 | Middle Proxy | true | `TM_MIDDLE_PROXY` | Подключение через Middle Proxy Telegram |
 | IPv6 | false | `TM_IPV6` | Слушать IPv6 в дополнение к IPv4 |
+| PROXY protocol | false | `TM_PROXY_PROTOCOL` | Для работы за HAProxy/nginx |
 
 ### Мониторинг
 
@@ -140,11 +149,12 @@ sudo ./telemt-setup.sh --help         # справка
 | API | true | `TM_API` | Management API |
 | Порт API | 9091 | `TM_API_PORT` | Порт Management API |
 
-### Логирование
+### Логирование и реклама
 
 | Параметр | По умолчанию | Env-переменная | Описание |
 |---|---|---|---|
 | Уровень логов | normal | `TM_LOG_LEVEL` | `debug`, `verbose`, `normal`, `silent` |
+| Ad Tag | (пусто) | `TM_AD_TAG` | Глобальный рекламный тег от @MTProxybot |
 
 ### Ссылки и контейнер
 
@@ -185,7 +195,8 @@ sudo ./telemt-setup.sh --edit
 sudo nano /etc/telemt/telemt.toml
 # Затем перезапустить:
 sudo docker restart telemt       # для Docker
-sudo systemctl restart telemt    # для бинарника
+sudo systemctl restart telemt    # для бинарника (systemd)
+sudo rc-service telemt restart   # для бинарника (OpenRC)
 ```
 
 ## Результат установки
@@ -220,14 +231,27 @@ sudo systemctl restart telemt    # для бинарника
 | | Docker | Binary |
 |---|---|---|
 | Установка | Автоматическая | Автоматическая |
-| Изоляция | Полная (контейнер) | Отдельный пользователь + systemd |
+| Изоляция | Полная (контейнер) | Отдельный пользователь + systemd/OpenRC |
 | Обновление | `--update` (pull + restart) | `--update` (скачать + restart) |
 | Безопасность | read-only, cap-drop, no-new-privileges | RAII, capabilities, ProtectSystem |
+| Оптимизация | Стандартная сборка | AVX2 (x86_64-v3) при поддержке CPU |
+| Init-системы | Docker | systemd + OpenRC |
 | Ресурсы | +50 МБ Docker overhead | Минимальные |
+
+## Что нового в v2.0
+
+- **Docker:** рабочая директория `/etc/telemt` (как в upstream docker-compose), `NET_ADMIN` capability, ulimits 65536:262144
+- **Binary:** x86_64-v3 (AVX2/BMI2) с автоматическим fallback, SHA256 верификация, `cap_net_admin`
+- **OpenRC:** полная поддержка init.d-сервиса для Alpine Linux
+- **Ad Tag:** глобальный рекламный тег от @MTProxybot
+- **PROXY protocol:** поддержка HAProxy/nginx
+- **Порт:** улучшенная детекция (распознаёт текущий telemt)
+- **Ссылки:** hex-кодирование домена через xxd/hexdump/od
+- **Версия:** `--version` для отображения версии скрипта
 
 ## Требования
 
-- Linux (Debian / Ubuntu / CentOS / Fedora / и др.)
+- Linux (Debian / Ubuntu / CentOS / Fedora / Alpine / и др.)
 - Root-доступ (sudo)
 - Доступ в интернет
 
